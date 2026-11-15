@@ -254,6 +254,30 @@
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function(){ URL.revokeObjectURL(url); }, 10000);
   }
+  // Only safe-to-view types open in a new tab (never HTML/SVG/scripts). Everything else is download-only.
+  var VIEW = {pdf:"application/pdf", png:"image/png", jpg:"image/jpeg", jpeg:"image/jpeg", gif:"image/gif",
+              webp:"image/webp", bmp:"image/bmp", txt:"text/plain", mp3:"audio/mpeg", wav:"audio/wav",
+              m4a:"audio/mp4", mp4:"video/mp4", webm:"video/webm", mov:"video/quicktime"};
+  function viewType(name, type){
+    var t = String(type || "").toLowerCase();
+    if (/^image\/(png|jpeg|gif|webp|bmp)$/.test(t) || t === "application/pdf" || t === "text/plain" ||
+        /^audio\/(mpeg|wav|mp4|ogg|webm)$/.test(t) || /^video\/(mp4|webm|quicktime)$/.test(t)) return t;
+    var m = /\.([a-z0-9]+)$/i.exec(String(name || ""));
+    return m && VIEW[m[1].toLowerCase()] ? VIEW[m[1].toLowerCase()] : null;
+  }
+  function openFile(name, type, getBlob){
+    var mime = viewType(name, type);
+    if (!mime) return;
+    var w = window.open("", "_blank");   // opened right on the tap so popup blockers allow it
+    if (!w){ flash("Popup blocked. Allow popups or use Download.", true); return; }
+    try{ w.opener = null; }catch(e){}
+    Promise.resolve(getBlob()).then(function(b){
+      if (!b){ w.close(); flash("File no longer available.", true); return; }
+      var url = URL.createObjectURL(new Blob([b], {type: mime}));
+      w.location.href = url;
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 300000);
+    });
+  }
   function fileTotal(){ return hist.reduce(function(s,h){ return s + (h.kind === "file" ? h.size : 0); }, 0); }
 
   /* ---------- screens ---------- */
@@ -478,7 +502,12 @@
       var nm = el("span","fname"); nm.textContent = "📄 " + h.name;
       var sz = el("span","fsize"); sz.textContent = " " + fmt(h.size);
       body.appendChild(nm); body.appendChild(sz);
-      var dl = el("button","linkbtn"); dl.textContent = "⬇ Download";
+      if (viewType(h.name, h.type)){
+        var op = el("button","linkbtn"); op.textContent = "👁 Open";
+        op.onclick = function(){ openFile(h.name, h.type, function(){ return fget(h.id); }); };
+        act.appendChild(op);
+      }
+      var dl = btn("⬇ Download");
       dl.onclick = function(){
         fget(h.id).then(function(b){ if (b) download(b, h.name); else flash("File no longer available.", true); });
       };
@@ -586,7 +615,12 @@
       var sz = el("span","fsize"); sz.textContent = " " + fmt(blob.size);
       body.appendChild(nm); body.appendChild(sz);
       var actions = el("div","actions");
-      var dl = el("button","linkbtn"); dl.textContent = "⬇ Download";
+      if (viewType(r2.name, r2.type)){
+        var op2 = el("button","linkbtn"); op2.textContent = "👁 Open";
+        op2.onclick = function(){ openFile(r2.name, r2.type, function(){ return blob; }); };
+        actions.appendChild(op2);
+      }
+      var dl = btn("⬇ Download");
       dl.onclick = function(){ download(blob, r2.name); };
       var close = btn("Dismiss"); close.onclick = function(){ card2.remove(); };
       actions.appendChild(dl); actions.appendChild(close);
