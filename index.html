@@ -101,6 +101,12 @@
   @keyframes slide{from{transform:translateY(30px); opacity:0}}
   .msg .label{font-size:12px; color:var(--accent); font-weight:700; text-transform:uppercase; letter-spacing:1px}
   .msg .body{margin:8px 0 12px; word-break:break-word; white-space:pre-wrap; max-height:180px; overflow:auto}
+  .modal{position:fixed; inset:0; z-index:100; background:rgba(10,12,25,.55); display:flex; align-items:center; justify-content:center; padding:16px}
+  .modal .box{background:var(--card); border:1px solid var(--border); border-radius:18px; padding:22px; width:100%; max-width:380px; box-shadow:0 20px 60px rgba(0,0,0,.4); animation:slide .2s ease-out}
+  .modal h3{margin:0 0 8px; font-size:18px}
+  .modal p{margin:0 0 18px; color:var(--muted); font-size:14px; line-height:1.5}
+  .modal .row > *{flex:1 1 120px}
+  .dangerbtn{background:var(--bad); color:#fff}
   footer{text-align:center; color:var(--muted); font-size:12px; margin:16px 0 90px}
 </style>
 </head>
@@ -152,6 +158,17 @@
   </section>
 
   <footer>Devices connect directly to each other. Nothing is sent to a server.</footer>
+</div>
+
+<div id="endModal" class="modal hidden">
+  <div class="box">
+    <h3>⚠️ End this session?</h3>
+    <p>The code will stop working and all messages and files will be erased on <b>both devices</b>. This can't be undone.</p>
+    <div class="row">
+      <button id="endCancel" class="ghost">Keep it</button>
+      <button id="endConfirm" class="dangerbtn">End &amp; erase</button>
+    </div>
+  </div>
 </div>
 
 <div id="inbox"></div>
@@ -271,13 +288,21 @@
     var w = window.open("", "_blank");   // opened right on the tap so popup blockers allow it
     if (!w){ flash("Popup blocked. Allow popups or use Download.", true); return; }
     try{ w.opener = null; }catch(e){}
+    openWins.push(w);
     Promise.resolve(getBlob()).then(function(b){
-      if (!b){ w.close(); flash("File no longer available.", true); return; }
+      if (!b || !sess){ try{ w.close(); }catch(e){} if (!b) flash("File no longer available.", true); return; }
       var url = URL.createObjectURL(new Blob([b], {type: mime}));
+      openUrls.push(url);          // stays valid only until the session ends
       w.location.href = url;
-      setTimeout(function(){ URL.revokeObjectURL(url); }, 300000);
     });
   }
+  // Kill every opened-file link and tab when the session ends
+  function revokeOpened(){
+    openUrls.forEach(function(u){ try{ URL.revokeObjectURL(u); }catch(e){} });
+    openWins.forEach(function(w){ try{ w.location.replace("about:blank"); w.close(); }catch(e){} });
+    openUrls = []; openWins = [];
+  }
+  var openUrls = [], openWins = [];
   function fileTotal(){ return hist.reduce(function(s,h){ return s + (h.kind === "file" ? h.size : 0); }, 0); }
 
   /* ---------- screens ---------- */
@@ -362,9 +387,11 @@
     peer = null; conns = []; clearTimeout(retryT); clearTimeout(joinTimer); pendingJoin = null;
     stopTick();
     try{ if (wl){ wl.release(); wl = null; } }catch(e){}
+    revokeOpened();
     sess = null; hist = []; incoming = {};
     store.del("ld_sess"); store.del("ld_hist"); fclear();
     $("inbox").innerHTML = ""; $("text").value = ""; $("sentMsg").textContent = "";
+    $("endModal").classList.add("hidden");
     show("pair"); $("pairErr").textContent = ""; $("pairNote").textContent = reason || "";
   }
 
@@ -654,7 +681,13 @@
     openConns().forEach(function(c){ c.send({x:"ext", rem:rem}); });
     flash("Added 10 minutes ✓");
   };
-  $("btnEnd").onclick = function(){ endSession(true, "Session ended. History cleared."); };
+  $("btnEnd").onclick = function(){ $("endModal").classList.remove("hidden"); };
+  $("endCancel").onclick = function(){ $("endModal").classList.add("hidden"); };
+  $("endModal").addEventListener("click", function(e){ if (e.target === this) this.classList.add("hidden"); });
+  $("endConfirm").onclick = function(){
+    $("endModal").classList.add("hidden");
+    endSession(true, "Session ended. History cleared.");
+  };
   $("btnSend").onclick = sendText;
   $("text").addEventListener("keydown", function(e){ if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) sendText(); });
   $("btnPaste").onclick = function(){
