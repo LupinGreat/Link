@@ -266,7 +266,7 @@
     show("sess");
     $("pairErr").textContent = ""; $("pairNote").textContent = "";
     $("codeShow").textContent = sess.code;
-    renderHist(); startTick(); setStatus();
+    renderHist(); startTick(); setStatus(); keepAwake();
   }
   function setStatus(){
     if (!sess) return;
@@ -288,7 +288,39 @@
     var t = $("timer"); t.textContent = m + ":" + (s < 10 ? "0" : "") + s;
     t.className = "timer" + (left < 60000 ? " low" : "");
   }
-  document.addEventListener("visibilitychange", function(){ if (!document.hidden) onTick(); });
+  var wl = null, beat = 0;
+  function keepAwake(){
+    try{
+      if (navigator.wakeLock && !wl){
+        navigator.wakeLock.request("screen").then(function(l){
+          wl = l; l.addEventListener("release", function(){ wl = null; });
+        }).catch(function(){});
+      }
+    }catch(e){}
+  }
+  // If the browser paused the page, the link to the matching server can drop. Rebuild it with the SAME code.
+  function ensureAlive(){
+    if (!sess) return;
+    if (sess.role === "host"){
+      if (!peer || peer.destroyed) createHost(sess.code, true);
+      else if (peer.disconnected){ try{ peer.reconnect(); }catch(e){} }
+    } else {
+      if (!peer || peer.destroyed) joinStart(sess.code, true);
+      else {
+        if (peer.disconnected){ try{ peer.reconnect(); }catch(e){} }
+        else if (!openConns().length) joinConnect(sess.code);
+      }
+    }
+  }
+  document.addEventListener("visibilitychange", function(){
+    if (!document.hidden){ onTick(); keepAwake(); ensureAlive(); }
+  });
+  window.addEventListener("pageshow", function(){ ensureAlive(); });
+  window.addEventListener("online", function(){ ensureAlive(); });
+  setInterval(function(){
+    beat++;
+    if (sess && !document.hidden && !openConns().length && beat % 4 === 0) ensureAlive();
+  }, 1500);
 
   /* ---------- end / reset ---------- */
   function cleanupPeer(){
@@ -305,6 +337,7 @@
     }, 400);
     peer = null; conns = []; clearTimeout(retryT); clearTimeout(joinTimer); pendingJoin = null;
     stopTick();
+    try{ if (wl){ wl.release(); wl = null; } }catch(e){}
     sess = null; hist = []; incoming = {};
     store.del("ld_sess"); store.del("ld_hist"); fclear();
     $("inbox").innerHTML = ""; $("text").value = ""; $("sentMsg").textContent = "";
@@ -326,6 +359,12 @@
       attach(c);
     });
     p.on("disconnected", function(){ try{ p.reconnect(); }catch(e){} });
+    p.on("close", function(){
+      if (sess && sess.role === "host" && peer === p){
+        peer = null;
+        retryT = setTimeout(function(){ if (sess && !peer) createHost(sess.code, true); }, 1500);
+      }
+    });
     p.on("error", function(err){
       if (err.type === "unavailable-id"){
         try{ p.destroy(); }catch(e){} peer = null;
