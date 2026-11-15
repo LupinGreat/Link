@@ -107,6 +107,12 @@
   .modal p{margin:0 0 18px; color:var(--muted); font-size:14px; line-height:1.5}
   .modal .row > *{flex:1 1 120px}
   .dangerbtn{background:var(--bad); color:#fff}
+  .tabs{display:flex; gap:8px; margin-bottom:14px}
+  .tab{flex:1; background:var(--card); color:var(--muted); border:1px solid var(--border)}
+  .tab.on{background:linear-gradient(90deg,var(--accent),var(--accent2)); color:#fff; border-color:transparent}
+  select{font:inherit; padding:12px; border-radius:12px; border:1px solid var(--border); background:var(--bg); color:var(--text); flex:1 1 140px}
+  input.plain{letter-spacing:0; font-size:15px; text-transform:none; text-align:left}
+  .keybox{font-weight:800; letter-spacing:3px; text-align:center; padding:8px; border-radius:10px; background:var(--card); border:1px dashed var(--accent); color:var(--accent); margin:6px 0 10px; user-select:all; word-break:break-all}
   footer{text-align:center; color:var(--muted); font-size:12px; margin:16px 0 90px}
 </style>
 </head>
@@ -114,9 +120,15 @@
 <div class="app">
   <header>
     <h1>⚡ Link Drop</h1>
-    <p>Send a link, text or file (max 10 MB) between your devices. Codes expire after 10 minutes.</p>
+    <p>Send a link, text or file (max 50 MB) between your devices. Codes expire after 10 minutes.</p>
   </header>
 
+  <div class="tabs">
+    <button id="tabBtnPair" class="tab on">⚡ Quick pair</button>
+    <button id="tabBtnShare" class="tab">🔗 Share link</button>
+  </div>
+
+  <div id="tabPair">
   <!-- pair -->
   <section id="pair" class="card">
     <button id="btnCreate" class="primary" style="width:100%">Create a code on this device</button>
@@ -144,7 +156,7 @@
       <button id="btnPaste" class="ghost">📋 Paste</button>
       <button id="btnSend" class="primary">Send ➤</button>
     </div>
-    <button id="btnFile" class="ghost" style="width:100%; margin-top:10px">📎 Send a file (max 10 MB)</button>
+    <button id="btnFile" class="ghost" style="width:100%; margin-top:10px">📎 Send a file (max 50 MB)</button>
     <input id="fileInput" type="file" class="hidden">
     <div id="sendBar" class="bar hidden"><div></div></div>
     <div id="sentMsg" class="sent"></div>
@@ -157,13 +169,53 @@
     <p class="hint">Erased on both devices when the code expires or ends.</p>
   </section>
 
+  </div>
+
+  <!-- share link tab -->
+  <div id="tabShare" class="hidden">
+    <section class="card">
+      <div class="htitle">Create a share link</div>
+      <p class="hint" style="text-align:left; margin:4px 0 12px">Add text, a file, or both. Anyone with the key can view it until it expires or you end it. It only works while this page stays open.</p>
+      <textarea id="shText" placeholder="Type or paste text to share…"></textarea>
+      <div class="row" style="margin-top:10px">
+        <button id="shFileBtn" class="ghost">📎 Add a file (max 50 MB)</button>
+        <select id="shTime">
+          <option value="10">Expires in 10 min</option>
+          <option value="30" selected>Expires in 30 min</option>
+          <option value="60">Expires in 1 hour</option>
+          <option value="180">Expires in 3 hours</option>
+        </select>
+      </div>
+      <input id="shFile" type="file" class="hidden">
+      <div id="shFileLabel" class="hint"></div>
+      <input id="shSite" type="text" class="plain" placeholder="Your Google Site address (optional, goes in the invite)" style="margin-top:10px">
+      <button id="shCreate" class="primary" style="width:100%; margin-top:12px">Create link</button>
+      <div id="shMsg" class="sent"></div>
+    </section>
+
+    <section class="card">
+      <div class="htitle">Your active links <span id="shCount" class="fsize"></span></div>
+      <div id="shList"></div>
+    </section>
+
+    <section class="card">
+      <div class="htitle">Open a link</div>
+      <p class="hint" style="text-align:left; margin:4px 0 12px">Paste the link or the 10-character key you were given.</p>
+      <input id="rxInput" type="text" class="plain" placeholder="Paste link or key" autocomplete="off">
+      <button id="rxOpen" class="primary" style="width:100%; margin-top:10px">Open</button>
+      <div id="rxErr" class="err"></div>
+      <div id="rxMsg" class="note"></div>
+      <div id="rxOut"></div>
+    </section>
+  </div>
+
   <footer>Devices connect directly to each other. Nothing is sent to a server.</footer>
 </div>
 
 <div id="endModal" class="modal hidden">
   <div class="box">
-    <h3>⚠️ End this session?</h3>
-    <p>The code will stop working and all messages and files will be erased on <b>both devices</b>. This can't be undone.</p>
+    <h3 id="endTitle">⚠️ End this session?</h3>
+    <p id="endText">The code will stop working and all messages and files will be erased on <b>both devices</b>. This can't be undone.</p>
     <div class="row">
       <button id="endCancel" class="ghost">Keep it</button>
       <button id="endConfirm" class="dangerbtn">End &amp; erase</button>
@@ -179,7 +231,7 @@
   var $ = function(id){ return document.getElementById(id); };
   var ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   var PREFIX = "linkdrop-x7-";
-  var MAX = 10 * 1024 * 1024, CAP = 50 * 1024 * 1024, CHUNK = 64 * 1024;
+  var MAX = 50 * 1024 * 1024, CAP = 200 * 1024 * 1024, CHUNK = 64 * 1024;
   var LIFE = 10 * 60 * 1000, EXT = 10 * 60 * 1000, MAXLIFE = 60 * 60 * 1000;
 
   var peer = null, conns = [], sess = null, hist = [], incoming = {};
@@ -282,17 +334,20 @@
     var m = /\.([a-z0-9]+)$/i.exec(String(name || ""));
     return m && VIEW[m[1].toLowerCase()] ? VIEW[m[1].toLowerCase()] : null;
   }
-  function openFile(name, type, getBlob){
+  function openFile(name, type, getBlob, bag){
     var mime = viewType(name, type);
     if (!mime) return;
+    var U = bag ? bag.urls : openUrls, W = bag ? bag.wins : openWins;
+    var say = (bag && bag.say) || flash;
     var w = window.open("", "_blank");   // opened right on the tap so popup blockers allow it
-    if (!w){ flash("Popup blocked. Allow popups or use Download.", true); return; }
+    if (!w){ say("Popup blocked. Allow popups or use Download.", true); return; }
     try{ w.opener = null; }catch(e){}
-    openWins.push(w);
+    W.push(w);
     Promise.resolve(getBlob()).then(function(b){
-      if (!b || !sess){ try{ w.close(); }catch(e){} if (!b) flash("File no longer available.", true); return; }
+      var dead = bag ? bag.dead : !sess;
+      if (!b || dead){ try{ w.close(); }catch(e){} if (!b) say("File no longer available.", true); return; }
       var url = URL.createObjectURL(new Blob([b], {type: mime}));
-      openUrls.push(url);          // stays valid only until the session ends
+      U.push(url);          // stays valid only until the session / link ends
       w.location.href = url;
     });
   }
@@ -388,8 +443,9 @@
     stopTick();
     try{ if (wl){ wl.release(); wl = null; } }catch(e){}
     revokeOpened();
+    clearHistFiles(hist);
     sess = null; hist = []; incoming = {};
-    store.del("ld_sess"); store.del("ld_hist"); fclear();
+    store.del("ld_sess"); store.del("ld_hist");
     $("inbox").innerHTML = ""; $("text").value = ""; $("sentMsg").textContent = "";
     $("endModal").classList.add("hidden");
     show("pair"); $("pairErr").textContent = ""; $("pairNote").textContent = reason || "";
@@ -560,8 +616,8 @@
   async function sendFile(file){
     var bar = $("sendBar"), fill = bar.firstElementChild;
     if (!file) return;
-    if (file.size > MAX){ flash("Too big (" + fmt(file.size) + "). Max is 10 MB.", true); return; }
-    if (fileTotal() + file.size > CAP){ flash("History is full (50 MB). Remove some files first.", true); return; }
+    if (file.size > MAX){ flash("Too big (" + fmt(file.size) + "). Max is 50 MB.", true); return; }
+    if (fileTotal() + file.size > CAP){ flash("History is full (200 MB). Remove some files first.", true); return; }
     var open = openConns();
     if (!open.length){ flash("Not connected yet.", true); return; }
     $("btnFile").disabled = true; $("btnSend").disabled = true;
@@ -617,7 +673,7 @@
       if (typeof d.size !== "number" || d.size > MAX) return;
       var name = String(d.name || "file");
       if (fileTotal() + d.size > CAP){
-        addHist({dir:"note", kind:"note", text:"Skipped “" + name + "” (history storage is full, 50 MB)."});
+        addHist({dir:"note", kind:"note", text:"Skipped “" + name + "” (history storage is full, 200 MB)."});
         return;
       }
       var card = el("div","msg");
@@ -681,12 +737,15 @@
     openConns().forEach(function(c){ c.send({x:"ext", rem:rem}); });
     flash("Added 10 minutes ✓");
   };
-  $("btnEnd").onclick = function(){ $("endModal").classList.remove("hidden"); };
+  $("btnEnd").onclick = function(){
+    askEnd("⚠️ End this session?", "The code will stop working and all messages and files will be erased on <b>both devices</b>. This can't be undone.", "End &amp; erase", function(){ endSession(true, "Session ended. History cleared."); });
+  };
   $("endCancel").onclick = function(){ $("endModal").classList.add("hidden"); };
   $("endModal").addEventListener("click", function(e){ if (e.target === this) this.classList.add("hidden"); });
   $("endConfirm").onclick = function(){
     $("endModal").classList.add("hidden");
-    endSession(true, "Session ended. History cleared.");
+    var a = endAction; endAction = null;
+    if (a) a();
   };
   $("btnSend").onclick = sendText;
   $("text").addEventListener("keydown", function(e){ if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) sendText(); });
@@ -699,6 +758,335 @@
   $("btnFile").onclick = function(){ $("fileInput").click(); };
   $("fileInput").onchange = function(){ sendFile(this.files[0]); };
 
+  /* ---------- tabs + confirm popup ---------- */
+  var endAction = null;
+  function askEnd(title, html, label, action){
+    $("endTitle").textContent = title; $("endText").innerHTML = html; $("endConfirm").innerHTML = label;
+    endAction = action; $("endModal").classList.remove("hidden");
+  }
+  function setTab(t){
+    $("tabPair").classList.toggle("hidden", t !== "pair");
+    $("tabShare").classList.toggle("hidden", t !== "share");
+    $("tabBtnPair").classList.toggle("on", t === "pair");
+    $("tabBtnShare").classList.toggle("on", t === "share");
+  }
+  $("tabBtnPair").onclick = function(){ setTab("pair"); };
+  $("tabBtnShare").onclick = function(){ setTab("share"); };
+  function clearHistFiles(list){
+    if (!Array.isArray(list)) return;
+    list.forEach(function(h){ if (h && h.kind === "file") fdel(h.id); });
+  }
+
+  /* ---------- share links (your page is the "server") ---------- */
+  var shares = [], shFile = null, shFlashT = null, rx = null;
+  function shFlash(m, bad){
+    var e = $("shMsg"); e.style.color = bad ? "var(--bad)" : ""; e.textContent = m;
+    clearTimeout(shFlashT); shFlashT = setTimeout(function(){ e.textContent = ""; e.style.color = ""; }, 3000);
+  }
+  function fmtLeft(ms){
+    var s = Math.max(0, Math.floor(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60;
+    return (h ? h + ":" + (m < 10 ? "0" : "") + m : m) + ":" + (x < 10 ? "0" : "") + x;
+  }
+  function makeToken(){
+    var a = new Uint8Array(10), c = "";
+    try{ crypto.getRandomValues(a); }catch(e){ for (var j = 0; j < 10; j++) a[j] = Math.floor(Math.random() * 256); }
+    for (var i = 0; i < 10; i++) c += ALPHABET[a[i] % 32];
+    return c;
+  }
+  function isStandalone(){ try{ return window.top === window.self; }catch(e){ return false; } }
+  function saveShares(){
+    store.set("ld_shares", JSON.stringify(shares.map(function(s){
+      return {tok:s.tok, exp:s.exp, text:s.text, fname:s.fname, ftype:s.ftype, fsize:s.fsize, opens:s.opens};
+    })));
+  }
+  function inviteText(sh){
+    if (isStandalone()) return location.href.split("#")[0] + "#s=" + sh.tok;
+    var site = ($("shSite").value || "").trim();
+    return (site ? "Open " + site + "\n" : "") + "Go to “Share link” → “Open a link” and paste this key:\n" + sh.tok;
+  }
+
+  async function createShare(){
+    var text = $("shText").value.trim();
+    if (!text && !shFile){ shFlash("Add some text or a file first.", true); return; }
+    if (shares.length >= 5){ shFlash("Max 5 active links. End one first.", true); return; }
+    var tok = makeToken(), mins = parseInt($("shTime").value, 10) || 30;
+    var sh = {tok:tok, exp:Date.now() + mins * 60000, text:text,
+              fname:shFile ? shFile.name : "", ftype:shFile ? (shFile.type || "application/octet-stream") : "",
+              fsize:shFile ? shFile.size : 0, opens:0, peer:null, conns:[], online:false};
+    if (shFile) await fput("sh_" + tok, shFile);
+    shares.push(sh); saveShares(); startSharePeer(sh);
+    $("shText").value = ""; shFile = null; $("shFile").value = ""; $("shFileLabel").textContent = "";
+    $("shFileBtn").textContent = "📎 Add a file (max 50 MB)";
+    renderShares(); shFlash("Link created ✓");
+  }
+
+  function startSharePeer(sh){
+    if (sh.peer && !sh.peer.destroyed) return;
+    if (typeof Peer === "undefined"){ shFlash("Could not load connection library. Check your internet.", true); return; }
+    var p = new Peer(PREFIX + "s-" + sh.tok); sh.peer = p; sh.online = false;
+    p.on("open", function(){ sh.online = true; renderShares(); });
+    p.on("disconnected", function(){ sh.online = false; renderShares(); try{ p.reconnect(); }catch(e){} });
+    p.on("close", function(){
+      if (sh.peer === p){
+        sh.peer = null; sh.online = false; renderShares();
+        setTimeout(function(){ if (shares.indexOf(sh) > -1 && !sh.peer) startSharePeer(sh); }, 2000);
+      }
+    });
+    p.on("error", function(err){
+      if (err.type === "unavailable-id"){
+        try{ p.destroy(); }catch(e){} sh.peer = null;
+        setTimeout(function(){ if (shares.indexOf(sh) > -1 && !sh.peer) startSharePeer(sh); }, 3000);
+      }
+    });
+    p.on("connection", function(c){
+      sh.conns.push(c);
+      c.on("close", function(){ sh.conns = sh.conns.filter(function(x){ return x !== c; }); });
+      c.on("error", function(){});
+      c.on("data", function(d){ shareRequest(sh, c, d); });
+    });
+  }
+  function ensureShares(){
+    shares.forEach(function(sh){
+      if (!sh.peer || sh.peer.destroyed){ sh.peer = null; startSharePeer(sh); }
+      else if (sh.peer.disconnected){ try{ sh.peer.reconnect(); }catch(e){} }
+    });
+  }
+
+  async function shareRequest(sh, c, d){
+    if (!d || shares.indexOf(sh) < 0) return;
+    if (Date.now() >= sh.exp){ try{ c.send({s:"gone"}); }catch(e){} return; }
+    if (d.r === "hello"){
+      sh.opens++; saveShares(); renderShares();
+      c.send({s:"meta", rem: sh.exp - Date.now(), text: sh.text || "",
+              file: sh.fname ? {name:sh.fname, type:sh.ftype, size:sh.fsize} : null});
+    } else if (d.r === "file" && sh.fname){
+      var f = await fget("sh_" + sh.tok);
+      if (!f){ try{ c.send({s:"gone"}); }catch(e){} return; }
+      try{
+        for (var off = 0; off < f.size; off += CHUNK){
+          if (!c.open || shares.indexOf(sh) < 0) return;
+          var buf = await f.slice(off, off + CHUNK).arrayBuffer();
+          while (c.open && c.dataChannel && c.dataChannel.bufferedAmount > 1000000) await sleep(40);
+          if (c.open) c.send({s:"chunk", d:buf});
+        }
+        if (c.open) c.send({s:"end"});
+      }catch(e){}
+    }
+  }
+
+  function endShare(sh){
+    shares = shares.filter(function(x){ return x !== sh; });
+    saveShares();
+    sh.conns.forEach(function(c){ try{ c.send({s:"gone"}); }catch(e){} });
+    var p = sh.peer, cs = sh.conns.slice();
+    sh.peer = null; sh.conns = [];
+    setTimeout(function(){
+      cs.forEach(function(c){ try{ c.close(); }catch(e){} });
+      try{ if (p) p.destroy(); }catch(e){}
+    }, 400);
+    fdel("sh_" + sh.tok);
+    renderShares();
+  }
+
+  function renderShares(){
+    var box = $("shList"); box.innerHTML = "";
+    $("shCount").textContent = shares.length ? "(" + shares.length + ")" : "";
+    if (!shares.length){ var e = el("p","hint"); e.textContent = "No active links."; box.appendChild(e); return; }
+    shares.forEach(function(sh){
+      var row = el("div","hrow");
+      var top = el("div","status"); top.style.margin = "0 0 6px";
+      var st = el("span","hmeta"); st.textContent = (sh.online ? "🟢 Live" : "🟠 Reconnecting…") + " · opened " + sh.opens + "×";
+      var tl = el("span","hmeta"); tl.appendChild(document.createTextNode("Expires in "));
+      var tm = el("span","timer"); tm.style.fontSize = "14px"; tm.textContent = fmtLeft(sh.exp - Date.now());
+      sh.timerEl = tm; tl.appendChild(tm);
+      top.appendChild(st); top.appendChild(tl);
+      var body = el("div","hbody"), parts = [];
+      if (sh.text) parts.push("“" + (sh.text.length > 80 ? sh.text.slice(0, 80) + "…" : sh.text) + "”");
+      if (sh.fname) parts.push("📄 " + sh.fname + " (" + fmt(sh.fsize) + ")");
+      body.textContent = parts.join("\n");
+      var key = el("div","keybox"); key.textContent = sh.tok;
+      var act = el("div","actions");
+      var inv = btn(isStandalone() ? "Copy link" : "Copy invite"); inv.onclick = function(){ copyText(inviteText(sh), inv); };
+      var ck = btn("Copy key"); ck.onclick = function(){ copyText(sh.tok, ck); };
+      var ext = btn("+10 min");
+      ext.onclick = function(){ sh.exp = Math.min(sh.exp + 600000, Date.now() + 24 * 3600000); saveShares(); renderShares(); };
+      var end = btn("End now"); end.className = "ghost small danger";
+      end.onclick = function(){
+        askEnd("⚠️ End this link?", "The link stops working right away and the shared text and file are erased. This can't be undone.", "End link", function(){ endShare(sh); });
+      };
+      act.appendChild(inv); act.appendChild(ck); act.appendChild(ext); act.appendChild(end);
+      row.appendChild(top); row.appendChild(body); row.appendChild(key); row.appendChild(act);
+      box.appendChild(row);
+    });
+  }
+
+  /* ---------- opening a link (viewer) ---------- */
+  function parseToken(v){
+    v = String(v || "");
+    var T = "[A-HJ-NP-Za-hj-np-z2-9]{10}";
+    var m = new RegExp("#s=(" + T + ")(?![A-Za-z0-9])").exec(v);
+    if (m) return m[1].toUpperCase();
+    var all = [], x, re = new RegExp("(?:^|[^A-Za-z0-9])(" + T + ")(?![A-Za-z0-9])", "g");
+    while ((x = re.exec(v))) all.push(x[1]);
+    return all.length ? all[all.length - 1].toUpperCase() : null;
+  }
+  function rxClose(){
+    if (!rx) return;
+    var st = rx; rx = null;
+    try{
+      st.bag.dead = true;
+      st.bag.urls.forEach(function(u){ try{ URL.revokeObjectURL(u); }catch(e){} });
+      st.bag.wins.forEach(function(w){ try{ w.location.replace("about:blank"); w.close(); }catch(e){} });
+    }catch(e){}
+    try{ if (st.conn) st.conn.close(); }catch(e){}
+    try{ st.peer.destroy(); }catch(e){}
+    $("rxOut").innerHTML = "";
+  }
+  function rxWipe(msg){ rxClose(); $("rxErr").textContent = ""; $("rxMsg").textContent = msg; }
+
+  function rxOpen(){
+    var tok = parseToken($("rxInput").value);
+    $("rxMsg").textContent = "";
+    if (!tok){ $("rxErr").textContent = "Paste the full link or the 10-character key."; return; }
+    if (typeof Peer === "undefined"){ $("rxErr").textContent = "Could not load connection library. Check your internet."; return; }
+    rxClose();
+    $("rxErr").textContent = "Connecting…";
+    var p = new Peer();
+    var st = {peer:p, conn:null, tok:tok, exp:0, meta:null, parts:[], got:0, blob:null, fetching:false, timerEl:null, barEl:null,
+              bag:{urls:[], wins:[], dead:false, say:function(m){ $("rxErr").textContent = m; }}};
+    rx = st;
+    var to = setTimeout(function(){
+      if (rx === st && !st.meta){
+        $("rxErr").textContent = "Could not reach the sender. The link may be expired, ended, or their page is closed.";
+        rxClose();
+      }
+    }, 12000);
+    p.on("open", function(){
+      var c = p.connect(PREFIX + "s-" + tok, {reliable:true}); st.conn = c;
+      c.on("open", function(){ c.send({r:"hello"}); });
+      c.on("data", function(d){ rxData(st, d, to); });
+      c.on("close", function(){
+        if (rx === st && st.meta && !st.gone) $("rxMsg").textContent = "Sender went offline. What's loaded stays until the timer ends.";
+      });
+    });
+    p.on("error", function(err){
+      if (rx !== st) return;
+      if (st.meta) return;
+      clearTimeout(to);
+      $("rxErr").textContent = err.type === "peer-unavailable"
+        ? "Not available: it expired, was ended, or the sender's page is closed."
+        : "Connection problem: " + err.type;
+      rxClose();
+    });
+  }
+  function rxData(st, d, to){
+    if (rx !== st || !d) return;
+    if (d.s === "gone"){ st.gone = true; rxWipe("This link expired or was ended by the sender. Everything was cleared."); return; }
+    if (d.s === "meta"){
+      clearTimeout(to);
+      if (typeof d.rem !== "number") return;
+      st.meta = d; st.exp = Date.now() + Math.max(0, d.rem);
+      $("rxErr").textContent = ""; rxRender(st);
+    } else if (d.s === "chunk"){
+      if (!d.d || !st.fetching || !st.meta || !st.meta.file) return;
+      st.parts.push(d.d); st.got += (d.d.byteLength || 0);
+      if (st.got > MAX){ st.fetching = false; st.parts = []; st.got = 0; $("rxErr").textContent = "File is bigger than the 50 MB limit."; rxRender(st); return; }
+      if (st.barEl) st.barEl.style.width = Math.min(100, Math.round(st.got / st.meta.file.size * 100)) + "%";
+    } else if (d.s === "end"){
+      if (!st.fetching || !st.meta || !st.meta.file) return;
+      st.blob = new Blob(st.parts, {type: st.meta.file.type || "application/octet-stream"});
+      st.parts = []; st.fetching = false; rxRender(st);
+    }
+  }
+  function rxRender(st){
+    var out = $("rxOut"); out.innerHTML = "";
+    var m = st.meta, card = el("div","hrow");
+    var top = el("div","status"); top.style.margin = "0 0 6px";
+    var l = el("span","hmeta"); l.textContent = "Shared with you";
+    var r = el("span","hmeta"); r.appendChild(document.createTextNode("Expires in "));
+    var tm = el("span","timer"); tm.style.fontSize = "14px"; tm.textContent = fmtLeft(st.exp - Date.now());
+    st.timerEl = tm; r.appendChild(tm);
+    top.appendChild(l); top.appendChild(r); card.appendChild(top);
+    if (m.text){
+      var tb = el("div","hbody"); tb.textContent = m.text; card.appendChild(tb);
+      var ta = el("div","actions");
+      if (isUrl(m.text)){
+        var a = el("a","linkbtn"); a.href = m.text.trim(); a.target = "_blank"; a.rel = "noopener noreferrer"; a.textContent = "Open link ↗";
+        ta.appendChild(a);
+      }
+      var cp = btn("Copy text"); cp.onclick = function(){ copyText(m.text, cp); }; ta.appendChild(cp);
+      card.appendChild(ta);
+    }
+    if (m.file){
+      var fb = el("div","hbody");
+      var nm = el("span","fname"); nm.textContent = "📄 " + m.file.name;
+      var sz = el("span","fsize"); sz.textContent = " " + fmt(m.file.size);
+      fb.appendChild(nm); fb.appendChild(sz); card.appendChild(fb);
+      var fa = el("div","actions");
+      if (st.blob){
+        if (viewType(m.file.name, m.file.type)){
+          var op = el("button","linkbtn"); op.textContent = "👁 Open";
+          op.onclick = function(){ openFile(m.file.name, m.file.type, function(){ return st.blob; }, st.bag); };
+          fa.appendChild(op);
+        }
+        var dl = btn("⬇ Download"); dl.onclick = function(){ download(st.blob, m.file.name); };
+        fa.appendChild(dl);
+        card.appendChild(fa);
+      } else if (st.fetching){
+        var bar = el("div","bar"), inner = el("div"); bar.appendChild(inner); st.barEl = inner;
+        inner.style.width = Math.min(100, Math.round(st.got / m.file.size * 100)) + "%";
+        card.appendChild(bar);
+      } else if (m.file.size > MAX){
+        var big = el("div","hint"); big.textContent = "File is bigger than 50 MB and can't be received."; card.appendChild(big);
+      } else {
+        var get = el("button","linkbtn"); get.textContent = "⬇ Get file (" + fmt(m.file.size) + ")";
+        get.onclick = function(){
+          st.fetching = true; st.parts = []; st.got = 0;
+          try{ st.conn.send({r:"file"}); }catch(e){ st.fetching = false; }
+          rxRender(st);
+        };
+        fa.appendChild(get); card.appendChild(fa);
+      }
+    }
+    out.appendChild(card);
+  }
+
+  function checkHash(){
+    var m = /#s=([A-Za-z0-9]{10})/.exec(location.hash || "");
+    if (m){ setTab("share"); $("rxInput").value = m[1].toUpperCase(); rxOpen(); }
+  }
+
+  $("shFileBtn").onclick = function(){ $("shFile").click(); };
+  $("shFile").onchange = function(){
+    var f = this.files[0];
+    if (!f) return;
+    if (f.size > MAX){ shFlash("Too big (" + fmt(f.size) + "). Max is 50 MB.", true); this.value = ""; return; }
+    shFile = f; $("shFileLabel").textContent = "📄 " + f.name + " (" + fmt(f.size) + ")";
+    $("shFileBtn").textContent = "📎 Change file";
+  };
+  $("shCreate").onclick = createShare;
+  $("shSite").addEventListener("input", function(){ store.set("ld_site", this.value); });
+  $("rxOpen").onclick = rxOpen;
+  $("rxInput").addEventListener("keydown", function(e){ if (e.key === "Enter") rxOpen(); });
+
+  // one-second ticker: countdowns + expiry for links you made and links you opened
+  var shBeat = 0;
+  setInterval(function(){
+    var now = Date.now();
+    shares.slice().forEach(function(sh){
+      if (now >= sh.exp) endShare(sh);
+      else if (sh.timerEl) sh.timerEl.textContent = fmtLeft(sh.exp - now);
+    });
+    if (rx && rx.exp){
+      if (now >= rx.exp) rxWipe("This link expired. Everything was cleared.");
+      else if (rx.timerEl) rx.timerEl.textContent = fmtLeft(rx.exp - now);
+    }
+    shBeat++;
+    if (shares.length && !document.hidden && shBeat % 5 === 0) ensureShares();
+  }, 1000);
+  document.addEventListener("visibilitychange", function(){ if (!document.hidden) ensureShares(); });
+  window.addEventListener("online", ensureShares);
+
   /* ---------- resume after refresh ---------- */
   (function init(){
     var s = null, h = null;
@@ -710,10 +1098,27 @@
     } else {
       show("pair");
       if (s){
-        store.del("ld_sess"); store.del("ld_hist"); fclear();
+        clearHistFiles(h); store.del("ld_sess"); store.del("ld_hist");
         $("pairNote").textContent = "Your last code expired. History cleared.";
       }
     }
+  })();
+
+  /* ---------- resume share links + open from #s= link ---------- */
+  (function initShares(){
+    var arr = [];
+    try{ arr = JSON.parse(store.get("ld_shares") || "[]"); }catch(e){}
+    if (!Array.isArray(arr)) arr = [];
+    arr.forEach(function(o){
+      if (!o || !o.tok) return;
+      if (o.exp <= Date.now()){ fdel("sh_" + o.tok); return; }
+      var sh = {tok:o.tok, exp:o.exp, text:o.text || "", fname:o.fname || "", ftype:o.ftype || "", fsize:o.fsize || 0,
+                opens:o.opens || 0, peer:null, conns:[], online:false};
+      shares.push(sh); startSharePeer(sh);
+    });
+    saveShares(); renderShares();
+    $("shSite").value = store.get("ld_site") || "";
+    checkHash(); window.addEventListener("hashchange", checkHash);
   })();
 })();
 </script>
