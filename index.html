@@ -19,7 +19,7 @@
     background:var(--bg); color:var(--text);
     min-height:100vh; padding:16px; display:flex; justify-content:center;
   }
-  .app{width:100%; max-width:520px}
+  .app{width:100%; max-width:560px}
   header{text-align:center; margin:8px 0 18px}
   header h1{
     margin:0; font-size:28px; letter-spacing:-.5px;
@@ -31,6 +31,7 @@
     background:var(--card); border:1px solid var(--border);
     border-radius:18px; padding:20px; box-shadow:0 6px 24px rgba(20,25,60,.07);
   }
+  .card + .card{margin-top:14px}
   .hidden{display:none !important}
   .row{display:flex; gap:10px; flex-wrap:wrap}
   .row > *{flex:1 1 140px}
@@ -42,6 +43,7 @@
   button:disabled{opacity:.5; cursor:not-allowed}
   .primary{background:linear-gradient(90deg,var(--accent),var(--accent2)); color:#fff}
   .ghost{background:transparent; color:var(--text); border:1px solid var(--border)}
+  .danger{color:var(--bad)}
   .small{padding:8px 12px; font-size:13px; border-radius:10px}
   input[type=text]{
     width:100%; font:inherit; font-size:22px; letter-spacing:6px; text-align:center;
@@ -49,28 +51,42 @@
     border:1px solid var(--border); background:var(--bg); color:var(--text);
   }
   textarea{
-    width:100%; min-height:110px; resize:vertical; font:inherit; font-size:16px;
+    width:100%; min-height:100px; resize:vertical; font:inherit; font-size:16px;
     padding:12px; border-radius:12px; border:1px solid var(--border);
     background:var(--bg); color:var(--text);
   }
   input:focus,textarea:focus{outline:2px solid var(--accent); border-color:transparent}
   .or{text-align:center; color:var(--muted); margin:14px 0; font-size:13px}
   .code{
-    font-size:38px; font-weight:800; letter-spacing:10px; text-align:center;
-    padding:14px 0 14px 10px; border-radius:14px; background:var(--bg);
+    font-size:32px; font-weight:800; letter-spacing:8px; text-align:center;
+    padding:12px 0 12px 8px; border-radius:14px; background:var(--bg);
     border:1px dashed var(--accent); color:var(--accent); user-select:all;
   }
   .hint{color:var(--muted); font-size:13px; text-align:center; margin:10px 0 0}
-  .status{
-    display:flex; align-items:center; justify-content:space-between; gap:10px;
-    margin-bottom:14px; font-size:14px;
-  }
+  .status{display:flex; align-items:center; justify-content:space-between; gap:10px; margin:14px 0; font-size:14px}
+  .timer{font-variant-numeric:tabular-nums; font-weight:800; font-size:18px; color:var(--accent)}
+  .timer.low{color:var(--bad)}
   .dot{display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--muted); margin-right:8px}
   .dot.ok{background:var(--ok); box-shadow:0 0 0 4px rgba(22,163,74,.18)}
   .dot.wait{background:#f59e0b; animation:pulse 1.2s infinite}
   @keyframes pulse{50%{opacity:.35}}
   .err{color:var(--bad); font-size:13px; text-align:center; margin-top:10px; min-height:16px}
+  .note{color:var(--muted); font-size:13px; text-align:center; margin-top:10px}
   .sent{color:var(--ok); font-size:13px; text-align:center; margin-top:8px; min-height:16px}
+  hr{border:0; border-top:1px solid var(--border); margin:16px 0}
+  .bar{height:8px; border-radius:6px; background:var(--bg); overflow:hidden; margin-top:8px}
+  .bar > div{height:100%; width:0; background:linear-gradient(90deg,var(--accent),var(--accent2)); transition:width .1s}
+  .fname{font-weight:600}
+  .fsize{color:var(--muted); font-size:13px}
+  .actions{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+  .actions a{text-decoration:none; display:inline-block}
+  .linkbtn{background:linear-gradient(90deg,var(--accent),var(--accent2)); color:#fff; font-weight:600; border-radius:10px; padding:8px 14px; font-size:13px; border:0}
+
+  /* history */
+  .htitle{font-weight:700; margin-bottom:2px}
+  .hrow{border:1px solid var(--border); border-radius:12px; padding:12px; margin-top:10px; background:var(--bg)}
+  .hmeta{font-size:12px; color:var(--muted)}
+  .hbody{margin:6px 0 10px; word-break:break-word; white-space:pre-wrap; max-height:140px; overflow:auto}
 
   /* incoming popups */
   #inbox{
@@ -78,22 +94,13 @@
     display:flex; flex-direction:column; gap:10px; align-items:center; pointer-events:none;
   }
   .msg{
-    pointer-events:auto; width:100%; max-width:520px;
+    pointer-events:auto; width:100%; max-width:560px;
     background:var(--card); border:1px solid var(--accent); border-radius:16px;
-    padding:16px; box-shadow:0 12px 40px rgba(20,25,60,.3);
-    animation:slide .25s ease-out;
+    padding:16px; box-shadow:0 12px 40px rgba(20,25,60,.3); animation:slide .25s ease-out;
   }
   @keyframes slide{from{transform:translateY(30px); opacity:0}}
   .msg .label{font-size:12px; color:var(--accent); font-weight:700; text-transform:uppercase; letter-spacing:1px}
   .msg .body{margin:8px 0 12px; word-break:break-word; white-space:pre-wrap; max-height:180px; overflow:auto}
-  .msg .body a{color:var(--accent)}
-  .msg .actions{display:flex; gap:8px; flex-wrap:wrap}
-  .msg .actions a{text-decoration:none; display:inline-block}
-  .linkbtn{background:linear-gradient(90deg,var(--accent),var(--accent2)); color:#fff; font-weight:600; border-radius:10px; padding:8px 14px; font-size:13px}
-  .bar{height:8px; border-radius:6px; background:var(--bg); overflow:hidden; margin-top:8px}
-  .bar > div{height:100%; width:0; background:linear-gradient(90deg,var(--accent),var(--accent2)); transition:width .1s}
-  .fname{font-weight:600}
-  .fsize{color:var(--muted); font-size:13px}
   footer{text-align:center; color:var(--muted); font-size:12px; margin:16px 0 90px}
 </style>
 </head>
@@ -101,32 +108,31 @@
 <div class="app">
   <header>
     <h1>⚡ Link Drop</h1>
-    <p>Send a link, text or file (up to 10 MB) between your devices. Nothing is saved.</p>
+    <p>Send a link, text or file (max 10 MB) between your devices. Codes expire after 10 minutes.</p>
   </header>
 
-  <!-- STEP 1: pair -->
+  <!-- pair -->
   <section id="pair" class="card">
-    <button id="btnCreate" class="primary" style="width:100%">Start on this device</button>
+    <button id="btnCreate" class="primary" style="width:100%">Create a code on this device</button>
     <div class="or">— then on your other device —</div>
     <input id="joinCode" type="text" maxlength="6" placeholder="CODE" autocomplete="off" autocapitalize="characters">
     <button id="btnJoin" class="ghost" style="width:100%; margin-top:10px">Connect with code</button>
     <div id="pairErr" class="err"></div>
+    <div id="pairNote" class="note"></div>
   </section>
 
-  <!-- waiting for other device -->
-  <section id="waiting" class="card hidden">
-    <div class="status"><span><span class="dot wait"></span>Waiting for your other device…</span></div>
+  <!-- session -->
+  <section id="sess" class="card hidden">
     <div id="codeShow" class="code">------</div>
-    <p class="hint">Open this page on your other device, type this code, tap Connect.</p>
-    <button id="btnCancel" class="ghost small" style="margin-top:14px">Cancel</button>
-  </section>
-
-  <!-- connected -->
-  <section id="chat" class="card hidden">
     <div class="status">
-      <span><span class="dot ok"></span><span id="statusText">Connected</span></span>
-      <button id="btnLeave" class="ghost small">Disconnect</button>
+      <span><span id="dot" class="dot wait"></span><span id="statusText">Waiting…</span></span>
+      <span>Expires in <span id="timer" class="timer">10:00</span></span>
     </div>
+    <div class="row">
+      <button id="btnExt" class="ghost">+10 min</button>
+      <button id="btnEnd" class="ghost danger">End now</button>
+    </div>
+    <hr>
     <textarea id="text" placeholder="Paste a link or type something to send…"></textarea>
     <div class="row" style="margin-top:10px">
       <button id="btnPaste" class="ghost">📋 Paste</button>
@@ -138,7 +144,14 @@
     <div id="sentMsg" class="sent"></div>
   </section>
 
-  <footer>Devices connect directly to each other. Close this page and everything is gone.</footer>
+  <!-- history -->
+  <section id="histCard" class="card hidden">
+    <div class="htitle">History <span id="histCount" class="fsize"></span></div>
+    <div id="histList"></div>
+    <p class="hint">Erased on both devices when the code expires or ends.</p>
+  </section>
+
+  <footer>Devices connect directly to each other. Nothing is sent to a server.</footer>
 </div>
 
 <div id="inbox"></div>
@@ -149,110 +162,82 @@
   var $ = function(id){ return document.getElementById(id); };
   var ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   var PREFIX = "linkdrop-x7-";
-  var peer = null, conns = [], isHost = false;
+  var MAX = 10 * 1024 * 1024, CAP = 50 * 1024 * 1024, CHUNK = 64 * 1024;
+  var LIFE = 10 * 60 * 1000, EXT = 10 * 60 * 1000, MAXLIFE = 60 * 60 * 1000;
 
-  function show(which){
-    ["pair","waiting","chat"].forEach(function(s){ $(s).classList.toggle("hidden", s !== which); });
-  }
-  function makeCode(){
-    var c = ""; for (var i=0;i<6;i++) c += ALPHABET[Math.floor(Math.random()*ALPHABET.length)];
-    return c;
-  }
-  function reset(){
-    conns.forEach(function(c){ try{c.close();}catch(e){} });
-    conns = [];
-    if (peer){ try{peer.destroy();}catch(e){} peer = null; }
-    isHost = false;
-    $("pairErr").textContent = "";
-    show("pair");
-  }
-  function updateStatus(){
-    var n = conns.filter(function(c){ return c.open; }).length;
-    $("statusText").textContent = n > 1 ? "Connected (" + n + " devices)" : "Connected";
-  }
+  var peer = null, conns = [], sess = null, hist = [], incoming = {};
+  var tick = null, retryT = null, joinTimer = null, pendingJoin = null, flashT = null;
 
-  /* ---------- host ---------- */
-  function startHost(){
-    if (typeof Peer === "undefined"){ $("pairErr").textContent = "Could not load connection library. Check your internet."; return; }
-    var code = makeCode();
-    isHost = true;
-    peer = new Peer(PREFIX + code);
-    peer.on("open", function(){
-      $("codeShow").textContent = code;
-      show("waiting");
+  /* ---------- storage (falls back to memory if the browser blocks it) ---------- */
+  var mem = {};
+  var store = {
+    get: function(k){ try{ return localStorage.getItem(k); }catch(e){ return mem[k] || null; } },
+    set: function(k,v){ try{ localStorage.setItem(k,v); }catch(e){ mem[k] = v; } },
+    del: function(k){ try{ localStorage.removeItem(k); }catch(e){} delete mem[k]; }
+  };
+  var memFiles = {}, dbp = null;
+  function db(){
+    if (dbp) return dbp;
+    dbp = new Promise(function(res, rej){
+      try{
+        var r = indexedDB.open("linkdrop", 1);
+        r.onupgradeneeded = function(){ r.result.createObjectStore("f"); };
+        r.onsuccess = function(){ res(r.result); };
+        r.onerror = function(){ rej(r.error); };
+      }catch(e){ rej(e); }
     });
-    peer.on("connection", function(conn){ attach(conn); });
-    peer.on("error", function(err){
-      if (err.type === "unavailable-id"){ try{peer.destroy();}catch(e){} startHost(); return; }
-      $("pairErr").textContent = "Connection problem: " + err.type;
-      if ($("waiting").classList.contains("hidden") === false) reset();
-    });
+    return dbp;
   }
-
-  /* ---------- joiner ---------- */
-  function startJoin(){
-    var code = $("joinCode").value.trim().toUpperCase();
-    if (code.length !== 6){ $("pairErr").textContent = "Enter the 6-character code."; return; }
-    if (typeof Peer === "undefined"){ $("pairErr").textContent = "Could not load connection library. Check your internet."; return; }
-    $("pairErr").textContent = "Connecting…";
-    peer = new Peer();
-    var timer = setTimeout(function(){
-      $("pairErr").textContent = "Could not connect. Check the code and try again.";
-      try{peer.destroy();}catch(e){} peer = null;
-    }, 12000);
-    peer.on("open", function(){
-      var conn = peer.connect(PREFIX + code, {reliable:true});
-      conn.on("open", function(){ clearTimeout(timer); attach(conn); });
-    });
-    peer.on("error", function(err){
-      clearTimeout(timer);
-      $("pairErr").textContent = err.type === "peer-unavailable"
-        ? "No device found with that code." : "Connection problem: " + err.type;
-      try{peer.destroy();}catch(e){} peer = null;
-    });
+  function fput(id, blob){
+    return db().then(function(d){ return new Promise(function(res, rej){
+      var t = d.transaction("f","readwrite"); t.objectStore("f").put(blob, id);
+      t.oncomplete = res; t.onerror = function(){ rej(t.error); };
+    }); }).catch(function(){ memFiles[id] = blob; });
   }
-
-  /* ---------- shared ---------- */
-  function attach(conn){
-    function ready(){
-      if (conns.indexOf(conn) === -1) conns.push(conn);
-      show("chat"); updateStatus(); $("pairErr").textContent = "";
-    }
-    if (conn.open) ready(); else conn.on("open", ready);
-    conn.on("data", function(data){
-      if (!data) return;
-      if (typeof data.t === "string") popup(data.t);
-      else if (data.f) receiveFile(data);
-      else return;
-      // host relays to any other connected devices
-      if (isHost) conns.forEach(function(c){ if (c !== conn && c.open) c.send(data); });
-    });
-    conn.on("close", function(){
-      conns = conns.filter(function(c){ return c !== conn; });
-      if (conns.length === 0){
-        if (isHost){ show("waiting"); }
-        else { $("pairErr").textContent = "Other device disconnected."; reset(); $("pairErr").textContent = "Other device disconnected."; }
-      } else updateStatus();
-    });
+  function fget(id){
+    if (memFiles[id]) return Promise.resolve(memFiles[id]);
+    return db().then(function(d){ return new Promise(function(res, rej){
+      var q = d.transaction("f").objectStore("f").get(id);
+      q.onsuccess = function(){ res(q.result); }; q.onerror = function(){ rej(q.error); };
+    }); }).catch(function(){ return null; });
   }
-
-  function send(){
-    var t = $("text").value.trim();
-    if (!t) return;
-    var open = conns.filter(function(c){ return c.open; });
-    if (!open.length){ $("sentMsg").textContent = ""; return; }
-    open.forEach(function(c){ c.send({t:t}); });
-    $("text").value = "";
-    $("sentMsg").textContent = "Sent ✓";
-    setTimeout(function(){ $("sentMsg").textContent = ""; }, 2000);
+  function fdel(id){
+    delete memFiles[id];
+    return db().then(function(d){ return new Promise(function(res){
+      var t = d.transaction("f","readwrite"); t.objectStore("f").delete(id);
+      t.oncomplete = res; t.onerror = res;
+    }); }).catch(function(){});
   }
+  function fclear(){
+    memFiles = {};
+    return db().then(function(d){ return new Promise(function(res){
+      var t = d.transaction("f","readwrite"); t.objectStore("f").clear();
+      t.oncomplete = res; t.onerror = res;
+    }); }).catch(function(){});
+  }
+  function saveSess(){ store.set("ld_sess", JSON.stringify(sess)); }
+  function saveHist(){ store.set("ld_hist", JSON.stringify(hist)); }
 
-  function isUrl(s){ return /^https?:\/\/\S+$/i.test(s.trim()); }
-  function copyText(s, btn){
-    function done(){ var o = btn.textContent; btn.textContent = "Copied ✓"; setTimeout(function(){ btn.textContent = o; }, 1500); }
-    if (navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(s).then(done, fallback);
-    } else fallback();
+  /* ---------- helpers ---------- */
+  function el(tag, cls){ var e = document.createElement(tag); if (cls) e.className = cls; return e; }
+  function btn(label){ var b = el("button","ghost small"); b.textContent = label; return b; }
+  function uid(){ return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+  function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+  function makeCode(){ var c = ""; for (var i=0;i<6;i++) c += ALPHABET[Math.floor(Math.random()*ALPHABET.length)]; return c; }
+  function openConns(){ return conns.filter(function(c){ return c.open; }); }
+  function isUrl(s){ return /^https?:\/\/\S+$/i.test(String(s).trim()); }
+  function fmt(n){
+    if (n < 1024) return n + " B";
+    if (n < 1048576) return (n/1024).toFixed(0) + " KB";
+    return (n/1048576).toFixed(1) + " MB";
+  }
+  function timeStr(ts){ try{ return new Date(ts).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"}); }catch(e){ return ""; } }
+  function flash(m, bad){
+    var e = $("sentMsg"); e.style.color = bad ? "var(--bad)" : ""; e.textContent = m;
+    clearTimeout(flashT); flashT = setTimeout(function(){ e.textContent = ""; e.style.color = ""; }, 2500);
+  }
+  function copyText(s, b){
+    function done(){ var o = b.textContent; b.textContent = "Copied ✓"; setTimeout(function(){ b.textContent = o; }, 1500); }
     function fallback(){
       var ta = document.createElement("textarea");
       ta.value = s; ta.style.position = "fixed"; ta.style.opacity = "0";
@@ -260,49 +245,232 @@
       try{ document.execCommand("copy"); done(); }catch(e){}
       document.body.removeChild(ta);
     }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(s).then(done, fallback);
+    else fallback();
+  }
+  function download(blob, name){
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a"); a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 10000);
+  }
+  function fileTotal(){ return hist.reduce(function(s,h){ return s + (h.kind === "file" ? h.size : 0); }, 0); }
+
+  /* ---------- screens ---------- */
+  function show(which){
+    $("pair").classList.toggle("hidden", which !== "pair");
+    $("sess").classList.toggle("hidden", which !== "sess");
+    $("histCard").classList.toggle("hidden", which !== "sess");
+  }
+  function enterSession(){
+    show("sess");
+    $("pairErr").textContent = ""; $("pairNote").textContent = "";
+    $("codeShow").textContent = sess.code;
+    renderHist(); startTick(); setStatus();
+  }
+  function setStatus(){
+    if (!sess) return;
+    var n = openConns().length;
+    $("dot").className = n ? "dot ok" : "dot wait";
+    $("statusText").textContent = n
+      ? (n > 1 ? "Connected (" + n + " devices)" : "Connected")
+      : (sess.role === "host" ? "Waiting for other device…" : "Reconnecting…");
   }
 
-  function popup(text){
-    var card = document.createElement("div"); card.className = "msg";
-    var label = document.createElement("div"); label.className = "label"; label.textContent = "Received";
-    var body = document.createElement("div"); body.className = "body"; body.textContent = text;
-    var actions = document.createElement("div"); actions.className = "actions";
+  /* ---------- timer ---------- */
+  function startTick(){ stopTick(); tick = setInterval(onTick, 1000); onTick(); }
+  function stopTick(){ if (tick){ clearInterval(tick); tick = null; } }
+  function onTick(){
+    if (!sess) return;
+    var left = sess.exp - Date.now();
+    if (left <= 0){ endSession(false, "The code expired. History cleared."); return; }
+    var m = Math.floor(left / 60000), s = Math.floor((left % 60000) / 1000);
+    var t = $("timer"); t.textContent = m + ":" + (s < 10 ? "0" : "") + s;
+    t.className = "timer" + (left < 60000 ? " low" : "");
+  }
+  document.addEventListener("visibilitychange", function(){ if (!document.hidden) onTick(); });
 
-    if (isUrl(text)){
-      var a = document.createElement("a");
-      a.href = text.trim(); a.target = "_blank"; a.rel = "noopener noreferrer";
-      a.className = "linkbtn"; a.textContent = "Open link ↗";
-      actions.appendChild(a);
+  /* ---------- end / reset ---------- */
+  function cleanupPeer(){
+    clearTimeout(joinTimer); pendingJoin = null;
+    try{ if (peer) peer.destroy(); }catch(e){}
+    peer = null; conns = [];
+  }
+  function endSession(notify, reason){
+    if (notify) openConns().forEach(function(c){ try{ c.send({x:"end"}); }catch(e){} });
+    var p = peer, cs = conns.slice();
+    setTimeout(function(){
+      cs.forEach(function(c){ try{ c.close(); }catch(e){} });
+      try{ if (p) p.destroy(); }catch(e){}
+    }, 400);
+    peer = null; conns = []; clearTimeout(retryT); clearTimeout(joinTimer); pendingJoin = null;
+    stopTick();
+    sess = null; hist = []; incoming = {};
+    store.del("ld_sess"); store.del("ld_hist"); fclear();
+    $("inbox").innerHTML = ""; $("text").value = ""; $("sentMsg").textContent = "";
+    show("pair"); $("pairErr").textContent = ""; $("pairNote").textContent = reason || "";
+  }
+
+  /* ---------- host ---------- */
+  function createHost(code, resume){
+    if (typeof Peer === "undefined"){ $("pairErr").textContent = "Could not load connection library. Check your internet."; return; }
+    var p = new Peer(PREFIX + code); peer = p;
+    p.on("open", function(){
+      if (!sess){
+        sess = {role:"host", code:code, exp:Date.now() + LIFE};
+        saveSess(); hist = []; saveHist(); enterSession();
+      }
+    });
+    p.on("connection", function(c){
+      if (!sess || Date.now() >= sess.exp){ c.on("open", function(){ try{ c.close(); }catch(e){} }); return; }
+      attach(c);
+    });
+    p.on("disconnected", function(){ try{ p.reconnect(); }catch(e){} });
+    p.on("error", function(err){
+      if (err.type === "unavailable-id"){
+        try{ p.destroy(); }catch(e){} peer = null;
+        if (resume || sess){ retryT = setTimeout(function(){ if (sess) createHost(sess.code, true); }, 3000); }
+        else createHost(makeCode(), false);
+        return;
+      }
+      if (!sess) $("pairErr").textContent = "Connection problem: " + err.type;
+    });
+  }
+
+  /* ---------- joiner ---------- */
+  function joinStart(code, resume){
+    if (typeof Peer === "undefined"){ $("pairErr").textContent = "Could not load connection library. Check your internet."; return; }
+    var p = new Peer(); peer = p;
+    if (!resume){
+      joinTimer = setTimeout(function(){
+        if (!sess){ $("pairErr").textContent = "Could not connect. Check the code and try again."; cleanupPeer(); }
+      }, 12000);
     }
-    var copy = document.createElement("button"); copy.className = "ghost small"; copy.textContent = "Copy";
-    copy.onclick = function(){ copyText(text, copy); };
-    var close = document.createElement("button"); close.className = "ghost small"; close.textContent = "Dismiss";
-    close.onclick = function(){ card.remove(); };
-    actions.appendChild(copy); actions.appendChild(close);
-
-    card.appendChild(label); card.appendChild(body); card.appendChild(actions);
-    $("inbox").appendChild(card);
-    try{ if (navigator.vibrate) navigator.vibrate(120); }catch(e){}
+    p.on("open", function(){ joinConnect(code); });
+    p.on("disconnected", function(){ try{ p.reconnect(); }catch(e){} });
+    p.on("error", function(err){
+      if (sess){ if (err.type === "peer-unavailable") scheduleRetry(code); return; }
+      $("pairErr").textContent = err.type === "peer-unavailable" ? "No device found with that code." : "Connection problem: " + err.type;
+      cleanupPeer();
+    });
+  }
+  function joinConnect(code){
+    if (!peer) return;
+    attach(peer.connect(PREFIX + code, {reliable:true}));
+  }
+  function scheduleRetry(code){
+    clearTimeout(retryT);
+    retryT = setTimeout(function(){
+      if (sess && sess.role === "join" && peer && !openConns().length) joinConnect(code);
+    }, 4000);
   }
 
-  /* ---------- files ---------- */
-  var MAX = 10 * 1024 * 1024, CHUNK = 64 * 1024;
-  var incoming = {};
-  function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
-  function fmt(n){
-    if (n < 1024) return n + " B";
-    if (n < 1048576) return (n/1024).toFixed(0) + " KB";
-    return (n/1048576).toFixed(1) + " MB";
+  /* ---------- connection ---------- */
+  function relay(from, d){
+    if (sess && sess.role === "host") conns.forEach(function(c){ if (c !== from && c.open) c.send(d); });
+  }
+  function attach(conn){
+    function ready(){
+      if (conns.indexOf(conn) === -1) conns.push(conn);
+      clearTimeout(joinTimer);
+      if (!sess && pendingJoin){
+        sess = {role:"join", code:pendingJoin, exp:Date.now() + LIFE};
+        pendingJoin = null; saveSess(); hist = []; saveHist(); enterSession();
+      }
+      if (!sess) return;
+      if (sess.role === "host") conn.send({x:"sync", rem: sess.exp - Date.now()});
+      setStatus();
+    }
+    if (conn.open) ready(); else conn.on("open", ready);
+
+    conn.on("data", function(d){
+      if (!d || !sess) return;
+      if (d.x === "end"){ relay(conn, d); endSession(false, "The other device ended the session. History cleared."); return; }
+      if (d.x === "ext" || d.x === "sync"){
+        if (typeof d.rem === "number"){
+          sess.exp = Date.now() + Math.min(Math.max(d.rem, 0), MAXLIFE); saveSess(); onTick();
+          if (d.x === "ext") relay(conn, d);
+        }
+        return;
+      }
+      if (typeof d.t === "string"){
+        addHist({dir:"in", kind:"text", text:d.t}); popup(d.t); relay(conn, d);
+      } else if (d.f){
+        receiveFile(d); relay(conn, d);
+      }
+    });
+    conn.on("close", function(){
+      conns = conns.filter(function(c){ return c !== conn; });
+      if (!sess) return;
+      setStatus();
+      if (sess.role === "join") scheduleRetry(sess.code);
+    });
+    conn.on("error", function(){});
+  }
+
+  /* ---------- history ---------- */
+  function addHist(item){
+    item.id = item.id || uid(); item.ts = Date.now();
+    hist.push(item); saveHist(); renderHist();
+  }
+  function removeHist(id){
+    hist = hist.filter(function(h){ if (h.id === id && h.kind === "file") fdel(id); return h.id !== id; });
+    saveHist(); renderHist();
+  }
+  function renderHist(){
+    var box = $("histList"); box.innerHTML = "";
+    $("histCount").textContent = hist.length ? "(" + hist.length + ")" : "";
+    if (!hist.length){ var e = el("p","hint"); e.textContent = "Nothing yet."; box.appendChild(e); return; }
+    hist.slice().reverse().forEach(function(h){ box.appendChild(histRow(h)); });
+  }
+  function histRow(h){
+    var row = el("div","hrow");
+    var meta = el("div","hmeta");
+    meta.textContent = (h.dir === "out" ? "↑ Sent" : h.dir === "in" ? "↓ Received" : "Note") + " · " + timeStr(h.ts);
+    var body = el("div","hbody"), act = el("div","actions");
+    if (h.kind === "text"){
+      body.textContent = h.text;
+      if (isUrl(h.text)){
+        var a = el("a","linkbtn"); a.href = h.text.trim(); a.target = "_blank"; a.rel = "noopener noreferrer"; a.textContent = "Open ↗";
+        act.appendChild(a);
+      }
+      var cp = btn("Copy"); cp.onclick = function(){ copyText(h.text, cp); }; act.appendChild(cp);
+    } else if (h.kind === "file"){
+      var nm = el("span","fname"); nm.textContent = "📄 " + h.name;
+      var sz = el("span","fsize"); sz.textContent = " " + fmt(h.size);
+      body.appendChild(nm); body.appendChild(sz);
+      var dl = el("button","linkbtn"); dl.textContent = "⬇ Download";
+      dl.onclick = function(){
+        fget(h.id).then(function(b){ if (b) download(b, h.name); else flash("File no longer available.", true); });
+      };
+      act.appendChild(dl);
+    } else { body.textContent = h.text; }
+    var del = btn("✕"); del.title = "Remove"; del.onclick = function(){ removeHist(h.id); };
+    act.appendChild(del);
+    row.appendChild(meta); row.appendChild(body); row.appendChild(act);
+    return row;
+  }
+
+  /* ---------- sending ---------- */
+  function sendText(){
+    var t = $("text").value.trim();
+    if (!t) return;
+    var o = openConns();
+    if (!o.length){ flash("Not connected yet.", true); return; }
+    o.forEach(function(c){ c.send({t:t}); });
+    addHist({dir:"out", kind:"text", text:t});
+    $("text").value = ""; flash("Sent ✓");
   }
 
   async function sendFile(file){
-    var msg = $("sentMsg"), bar = $("sendBar"), fill = bar.firstElementChild;
+    var bar = $("sendBar"), fill = bar.firstElementChild;
     if (!file) return;
-    if (file.size > MAX){ msg.style.color = "var(--bad)"; msg.textContent = "Too big (" + fmt(file.size) + "). Max is 10 MB."; return; }
-    var open = conns.filter(function(c){ return c.open; });
-    if (!open.length) return;
-    msg.style.color = ""; $("btnFile").disabled = true; $("btnSend").disabled = true;
-    var id = Math.random().toString(36).slice(2);
+    if (file.size > MAX){ flash("Too big (" + fmt(file.size) + "). Max is 10 MB.", true); return; }
+    if (fileTotal() + file.size > CAP){ flash("History is full (50 MB). Remove some files first.", true); return; }
+    var open = openConns();
+    if (!open.length){ flash("Not connected yet.", true); return; }
+    $("btnFile").disabled = true; $("btnSend").disabled = true;
+    var id = uid(), ok = false;
     open.forEach(function(c){
       c.send({f:"start", id:id, name:file.name, type:file.type || "application/octet-stream", size:file.size});
     });
@@ -316,27 +484,53 @@
           if (c.open) c.send({f:"chunk", id:id, d:buf});
         }
         var pct = Math.min(100, Math.round((off + CHUNK) / file.size * 100));
-        fill.style.width = pct + "%"; msg.textContent = "Sending… " + pct + "%";
+        fill.style.width = pct + "%"; $("sentMsg").style.color = ""; $("sentMsg").textContent = "Sending… " + pct + "%";
       }
       open.forEach(function(c){ if (c.open) c.send({f:"end", id:id}); });
-      msg.textContent = "File sent ✓";
-    } catch(e){
-      msg.style.color = "var(--bad)"; msg.textContent = "Sending failed. Try again.";
+      ok = true;
+    } catch(e){ flash("Sending failed. Try again.", true); }
+    if (ok && sess){
+      await fput(id, file);
+      addHist({id:id, dir:"out", kind:"file", name:file.name, size:file.size, type:file.type});
+      flash("File sent ✓");
     }
-    setTimeout(function(){ bar.classList.add("hidden"); msg.textContent = ""; msg.style.color = ""; }, 2500);
+    setTimeout(function(){ bar.classList.add("hidden"); }, 1200);
     $("btnFile").disabled = false; $("btnSend").disabled = false;
     $("fileInput").value = "";
+  }
+
+  /* ---------- receiving ---------- */
+  function popup(text){
+    var card = el("div","msg");
+    var label = el("div","label"); label.textContent = "Received";
+    var body = el("div","body"); body.textContent = text;
+    var actions = el("div","actions");
+    if (isUrl(text)){
+      var a = el("a","linkbtn"); a.href = text.trim(); a.target = "_blank"; a.rel = "noopener noreferrer"; a.textContent = "Open link ↗";
+      actions.appendChild(a);
+    }
+    var copy = btn("Copy"); copy.onclick = function(){ copyText(text, copy); };
+    var close = btn("Dismiss"); close.onclick = function(){ card.remove(); };
+    actions.appendChild(copy); actions.appendChild(close);
+    card.appendChild(label); card.appendChild(body); card.appendChild(actions);
+    $("inbox").appendChild(card);
+    try{ if (navigator.vibrate) navigator.vibrate(120); }catch(e){}
   }
 
   function receiveFile(d){
     if (d.f === "start"){
       if (typeof d.size !== "number" || d.size > MAX) return;
-      var card = document.createElement("div"); card.className = "msg";
+      var name = String(d.name || "file");
+      if (fileTotal() + d.size > CAP){
+        addHist({dir:"note", kind:"note", text:"Skipped “" + name + "” (history storage is full, 50 MB)."});
+        return;
+      }
+      var card = el("div","msg");
       card.innerHTML = '<div class="label">Receiving file…</div><div class="body"><span class="fname"></span> <span class="fsize"></span></div><div class="bar"><div></div></div>';
-      card.querySelector(".fname").textContent = d.name;
+      card.querySelector(".fname").textContent = name;
       card.querySelector(".fsize").textContent = fmt(d.size);
       $("inbox").appendChild(card);
-      incoming[d.id] = {name:String(d.name || "file"), type:d.type, size:d.size, parts:[], got:0, card:card};
+      incoming[d.id] = {name:name, type:d.type, size:d.size, parts:[], got:0, card:card};
     } else if (d.f === "chunk"){
       var r = incoming[d.id]; if (!r || !d.d) return;
       r.parts.push(d.d); r.got += (d.d.byteLength || 0);
@@ -346,42 +540,75 @@
       var r2 = incoming[d.id]; if (!r2) return;
       delete incoming[d.id];
       var blob = new Blob(r2.parts, {type: r2.type || "application/octet-stream"});
-      var url = URL.createObjectURL(blob);
       var card2 = r2.card; card2.innerHTML = "";
-      var label = document.createElement("div"); label.className = "label"; label.textContent = "File received";
-      var body = document.createElement("div"); body.className = "body";
-      var nm = document.createElement("span"); nm.className = "fname"; nm.textContent = r2.name;
-      var sz = document.createElement("span"); sz.className = "fsize"; sz.textContent = " " + fmt(blob.size);
+      var label = el("div","label"); label.textContent = "File received";
+      var body = el("div","body");
+      var nm = el("span","fname"); nm.textContent = r2.name;
+      var sz = el("span","fsize"); sz.textContent = " " + fmt(blob.size);
       body.appendChild(nm); body.appendChild(sz);
-      var actions = document.createElement("div"); actions.className = "actions";
-      var a = document.createElement("a"); a.href = url; a.download = r2.name;
-      a.className = "linkbtn"; a.textContent = "⬇ Download";
-      var close = document.createElement("button"); close.className = "ghost small"; close.textContent = "Dismiss";
-      close.onclick = function(){ URL.revokeObjectURL(url); card2.remove(); };
-      actions.appendChild(a); actions.appendChild(close);
+      var actions = el("div","actions");
+      var dl = el("button","linkbtn"); dl.textContent = "⬇ Download";
+      dl.onclick = function(){ download(blob, r2.name); };
+      var close = btn("Dismiss"); close.onclick = function(){ card2.remove(); };
+      actions.appendChild(dl); actions.appendChild(close);
       card2.appendChild(label); card2.appendChild(body); card2.appendChild(actions);
       try{ if (navigator.vibrate) navigator.vibrate(120); }catch(e){}
+      fput(d.id, blob).then(function(){
+        if (sess) addHist({id:d.id, dir:"in", kind:"file", name:r2.name, size:blob.size, type:r2.type});
+      });
     }
   }
 
   /* ---------- wire up ---------- */
-  $("btnFile").onclick = function(){ $("fileInput").click(); };
-  $("fileInput").onchange = function(){ sendFile(this.files[0]); };
-  $("btnCreate").onclick = startHost;
+  $("btnCreate").onclick = function(){
+    $("pairErr").textContent = ""; $("pairNote").textContent = "";
+    createHost(makeCode(), false);
+  };
+  function startJoin(){
+    var code = $("joinCode").value.trim().toUpperCase();
+    $("pairNote").textContent = "";
+    if (code.length !== 6){ $("pairErr").textContent = "Enter the 6-character code."; return; }
+    $("pairErr").textContent = "Connecting…";
+    pendingJoin = code; joinStart(code, false);
+  }
   $("btnJoin").onclick = startJoin;
   $("joinCode").addEventListener("keydown", function(e){ if (e.key === "Enter") startJoin(); });
-  $("btnCancel").onclick = reset;
-  $("btnLeave").onclick = reset;
-  $("btnSend").onclick = send;
-  $("text").addEventListener("keydown", function(e){
-    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) send();
-  });
+
+  $("btnExt").onclick = function(){
+    if (!sess) return;
+    var rem = Math.min(sess.exp - Date.now() + EXT, MAXLIFE);
+    sess.exp = Date.now() + rem; saveSess(); onTick();
+    openConns().forEach(function(c){ c.send({x:"ext", rem:rem}); });
+    flash("Added 10 minutes ✓");
+  };
+  $("btnEnd").onclick = function(){ endSession(true, "Session ended. History cleared."); };
+  $("btnSend").onclick = sendText;
+  $("text").addEventListener("keydown", function(e){ if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) sendText(); });
   $("btnPaste").onclick = function(){
     if (navigator.clipboard && navigator.clipboard.readText){
       navigator.clipboard.readText().then(function(t){ $("text").value = t; $("text").focus(); },
-        function(){ $("sentMsg").textContent = "Paste blocked here, long-press the box and paste."; });
-    } else $("sentMsg").textContent = "Long-press the box and paste.";
+        function(){ flash("Paste blocked here, long-press the box and paste.", true); });
+    } else flash("Long-press the box and paste.", true);
   };
+  $("btnFile").onclick = function(){ $("fileInput").click(); };
+  $("fileInput").onchange = function(){ sendFile(this.files[0]); };
+
+  /* ---------- resume after refresh ---------- */
+  (function init(){
+    var s = null, h = null;
+    try{ s = JSON.parse(store.get("ld_sess") || "null"); h = JSON.parse(store.get("ld_hist") || "[]"); }catch(e){}
+    if (s && s.code && (s.role === "host" || s.role === "join") && s.exp > Date.now()){
+      sess = s; hist = Array.isArray(h) ? h : [];
+      enterSession();
+      if (sess.role === "host") createHost(sess.code, true); else joinStart(sess.code, true);
+    } else {
+      show("pair");
+      if (s){
+        store.del("ld_sess"); store.del("ld_hist"); fclear();
+        $("pairNote").textContent = "Your last code expired. History cleared.";
+      }
+    }
+  })();
 })();
 </script>
 </body>
