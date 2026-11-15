@@ -90,6 +90,10 @@
   .msg .actions{display:flex; gap:8px; flex-wrap:wrap}
   .msg .actions a{text-decoration:none; display:inline-block}
   .linkbtn{background:linear-gradient(90deg,var(--accent),var(--accent2)); color:#fff; font-weight:600; border-radius:10px; padding:8px 14px; font-size:13px}
+  .bar{height:8px; border-radius:6px; background:var(--bg); overflow:hidden; margin-top:8px}
+  .bar > div{height:100%; width:0; background:linear-gradient(90deg,var(--accent),var(--accent2)); transition:width .1s}
+  .fname{font-weight:600}
+  .fsize{color:var(--muted); font-size:13px}
   footer{text-align:center; color:var(--muted); font-size:12px; margin:16px 0 90px}
 </style>
 </head>
@@ -97,7 +101,7 @@
 <div class="app">
   <header>
     <h1>⚡ Link Drop</h1>
-    <p>Send a link or text between your devices. Nothing is saved.</p>
+    <p>Send a link, text or file (up to 10 MB) between your devices. Nothing is saved.</p>
   </header>
 
   <!-- STEP 1: pair -->
@@ -128,6 +132,9 @@
       <button id="btnPaste" class="ghost">📋 Paste</button>
       <button id="btnSend" class="primary">Send ➤</button>
     </div>
+    <button id="btnFile" class="ghost" style="width:100%; margin-top:10px">📎 Send a file (max 10 MB)</button>
+    <input id="fileInput" type="file" class="hidden">
+    <div id="sendBar" class="bar hidden"><div></div></div>
     <div id="sentMsg" class="sent"></div>
   </section>
 
@@ -213,8 +220,10 @@
     }
     if (conn.open) ready(); else conn.on("open", ready);
     conn.on("data", function(data){
-      if (!data || typeof data.t !== "string") return;
-      popup(data.t);
+      if (!data) return;
+      if (typeof data.t === "string") popup(data.t);
+      else if (data.f) receiveFile(data);
+      else return;
       // host relays to any other connected devices
       if (isHost) conns.forEach(function(c){ if (c !== conn && c.open) c.send(data); });
     });
@@ -276,7 +285,88 @@
     try{ if (navigator.vibrate) navigator.vibrate(120); }catch(e){}
   }
 
+  /* ---------- files ---------- */
+  var MAX = 10 * 1024 * 1024, CHUNK = 64 * 1024;
+  var incoming = {};
+  function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+  function fmt(n){
+    if (n < 1024) return n + " B";
+    if (n < 1048576) return (n/1024).toFixed(0) + " KB";
+    return (n/1048576).toFixed(1) + " MB";
+  }
+
+  async function sendFile(file){
+    var msg = $("sentMsg"), bar = $("sendBar"), fill = bar.firstElementChild;
+    if (!file) return;
+    if (file.size > MAX){ msg.style.color = "var(--bad)"; msg.textContent = "Too big (" + fmt(file.size) + "). Max is 10 MB."; return; }
+    var open = conns.filter(function(c){ return c.open; });
+    if (!open.length) return;
+    msg.style.color = ""; $("btnFile").disabled = true; $("btnSend").disabled = true;
+    var id = Math.random().toString(36).slice(2);
+    open.forEach(function(c){
+      c.send({f:"start", id:id, name:file.name, type:file.type || "application/octet-stream", size:file.size});
+    });
+    bar.classList.remove("hidden"); fill.style.width = "0%";
+    try{
+      for (var off = 0; off < file.size; off += CHUNK){
+        var buf = await file.slice(off, off + CHUNK).arrayBuffer();
+        for (var i = 0; i < open.length; i++){
+          var c = open[i];
+          while (c.open && c.dataChannel && c.dataChannel.bufferedAmount > 1000000) await sleep(40);
+          if (c.open) c.send({f:"chunk", id:id, d:buf});
+        }
+        var pct = Math.min(100, Math.round((off + CHUNK) / file.size * 100));
+        fill.style.width = pct + "%"; msg.textContent = "Sending… " + pct + "%";
+      }
+      open.forEach(function(c){ if (c.open) c.send({f:"end", id:id}); });
+      msg.textContent = "File sent ✓";
+    } catch(e){
+      msg.style.color = "var(--bad)"; msg.textContent = "Sending failed. Try again.";
+    }
+    setTimeout(function(){ bar.classList.add("hidden"); msg.textContent = ""; msg.style.color = ""; }, 2500);
+    $("btnFile").disabled = false; $("btnSend").disabled = false;
+    $("fileInput").value = "";
+  }
+
+  function receiveFile(d){
+    if (d.f === "start"){
+      if (typeof d.size !== "number" || d.size > MAX) return;
+      var card = document.createElement("div"); card.className = "msg";
+      card.innerHTML = '<div class="label">Receiving file…</div><div class="body"><span class="fname"></span> <span class="fsize"></span></div><div class="bar"><div></div></div>';
+      card.querySelector(".fname").textContent = d.name;
+      card.querySelector(".fsize").textContent = fmt(d.size);
+      $("inbox").appendChild(card);
+      incoming[d.id] = {name:String(d.name || "file"), type:d.type, size:d.size, parts:[], got:0, card:card};
+    } else if (d.f === "chunk"){
+      var r = incoming[d.id]; if (!r || !d.d) return;
+      r.parts.push(d.d); r.got += (d.d.byteLength || 0);
+      if (r.got > MAX){ r.card.remove(); delete incoming[d.id]; return; }
+      r.card.querySelector(".bar > div").style.width = Math.min(100, Math.round(r.got / r.size * 100)) + "%";
+    } else if (d.f === "end"){
+      var r2 = incoming[d.id]; if (!r2) return;
+      delete incoming[d.id];
+      var blob = new Blob(r2.parts, {type: r2.type || "application/octet-stream"});
+      var url = URL.createObjectURL(blob);
+      var card2 = r2.card; card2.innerHTML = "";
+      var label = document.createElement("div"); label.className = "label"; label.textContent = "File received";
+      var body = document.createElement("div"); body.className = "body";
+      var nm = document.createElement("span"); nm.className = "fname"; nm.textContent = r2.name;
+      var sz = document.createElement("span"); sz.className = "fsize"; sz.textContent = " " + fmt(blob.size);
+      body.appendChild(nm); body.appendChild(sz);
+      var actions = document.createElement("div"); actions.className = "actions";
+      var a = document.createElement("a"); a.href = url; a.download = r2.name;
+      a.className = "linkbtn"; a.textContent = "⬇ Download";
+      var close = document.createElement("button"); close.className = "ghost small"; close.textContent = "Dismiss";
+      close.onclick = function(){ URL.revokeObjectURL(url); card2.remove(); };
+      actions.appendChild(a); actions.appendChild(close);
+      card2.appendChild(label); card2.appendChild(body); card2.appendChild(actions);
+      try{ if (navigator.vibrate) navigator.vibrate(120); }catch(e){}
+    }
+  }
+
   /* ---------- wire up ---------- */
+  $("btnFile").onclick = function(){ $("fileInput").click(); };
+  $("fileInput").onchange = function(){ sendFile(this.files[0]); };
   $("btnCreate").onclick = startHost;
   $("btnJoin").onclick = startJoin;
   $("joinCode").addEventListener("keydown", function(e){ if (e.key === "Enter") startJoin(); });
