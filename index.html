@@ -101,12 +101,6 @@
   @keyframes slide{from{transform:translateY(30px); opacity:0}}
   .msg .label{font-size:12px; color:var(--accent); font-weight:700; text-transform:uppercase; letter-spacing:1px}
   .msg .body{margin:8px 0 12px; word-break:break-word; white-space:pre-wrap; max-height:180px; overflow:auto}
-  .modal{position:fixed; inset:0; z-index:100; background:rgba(10,12,25,.55); display:flex; align-items:center; justify-content:center; padding:16px}
-  .modal .box{background:var(--card); border:1px solid var(--border); border-radius:18px; padding:22px; width:100%; max-width:380px; box-shadow:0 20px 60px rgba(0,0,0,.4); animation:slide .2s ease-out}
-  .modal h3{margin:0 0 8px; font-size:18px}
-  .modal p{margin:0 0 18px; color:var(--muted); font-size:14px; line-height:1.5}
-  .modal .row > *{flex:1 1 120px}
-  .dangerbtn{background:var(--bad); color:#fff}
   footer{text-align:center; color:var(--muted); font-size:12px; margin:16px 0 90px}
 </style>
 </head>
@@ -114,7 +108,7 @@
 <div class="app">
   <header>
     <h1>⚡ Link Drop</h1>
-    <p>Send a link, text or file (max 50 MB) between your devices. Codes expire after 10 minutes.</p>
+    <p>Send a link, text or file (max 10 MB) between your devices. Codes expire after 10 minutes.</p>
   </header>
 
   <!-- pair -->
@@ -144,7 +138,7 @@
       <button id="btnPaste" class="ghost">📋 Paste</button>
       <button id="btnSend" class="primary">Send ➤</button>
     </div>
-    <button id="btnFile" class="ghost" style="width:100%; margin-top:10px">📎 Send a file (max 50 MB)</button>
+    <button id="btnFile" class="ghost" style="width:100%; margin-top:10px">📎 Send a file (max 10 MB)</button>
     <input id="fileInput" type="file" class="hidden">
     <div id="sendBar" class="bar hidden"><div></div></div>
     <div id="sentMsg" class="sent"></div>
@@ -160,17 +154,6 @@
   <footer>Devices connect directly to each other. Nothing is sent to a server.</footer>
 </div>
 
-<div id="endModal" class="modal hidden">
-  <div class="box">
-    <h3>⚠️ End this session?</h3>
-    <p>The code will stop working and all messages and files will be erased on <b>both devices</b>. This can't be undone.</p>
-    <div class="row">
-      <button id="endCancel" class="ghost">Keep it</button>
-      <button id="endConfirm" class="dangerbtn">End &amp; erase</button>
-    </div>
-  </div>
-</div>
-
 <div id="inbox"></div>
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
@@ -179,7 +162,7 @@
   var $ = function(id){ return document.getElementById(id); };
   var ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   var PREFIX = "linkdrop-x7-";
-  var MAX = 50 * 1024 * 1024, CAP = 200 * 1024 * 1024, CHUNK = 64 * 1024;
+  var MAX = 10 * 1024 * 1024, CAP = 50 * 1024 * 1024, CHUNK = 64 * 1024;
   var LIFE = 10 * 60 * 1000, EXT = 10 * 60 * 1000, MAXLIFE = 60 * 60 * 1000;
 
   var peer = null, conns = [], sess = null, hist = [], incoming = {};
@@ -288,21 +271,13 @@
     var w = window.open("", "_blank");   // opened right on the tap so popup blockers allow it
     if (!w){ flash("Popup blocked. Allow popups or use Download.", true); return; }
     try{ w.opener = null; }catch(e){}
-    openWins.push(w);
     Promise.resolve(getBlob()).then(function(b){
-      if (!b || !sess){ try{ w.close(); }catch(e){} if (!b) flash("File no longer available.", true); return; }
+      if (!b){ w.close(); flash("File no longer available.", true); return; }
       var url = URL.createObjectURL(new Blob([b], {type: mime}));
-      openUrls.push(url);          // stays valid only until the session ends
       w.location.href = url;
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 300000);
     });
   }
-  // Kill every opened-file link and tab when the session ends
-  function revokeOpened(){
-    openUrls.forEach(function(u){ try{ URL.revokeObjectURL(u); }catch(e){} });
-    openWins.forEach(function(w){ try{ w.location.replace("about:blank"); w.close(); }catch(e){} });
-    openUrls = []; openWins = [];
-  }
-  var openUrls = [], openWins = [];
   function fileTotal(){ return hist.reduce(function(s,h){ return s + (h.kind === "file" ? h.size : 0); }, 0); }
 
   /* ---------- screens ---------- */
@@ -387,11 +362,9 @@
     peer = null; conns = []; clearTimeout(retryT); clearTimeout(joinTimer); pendingJoin = null;
     stopTick();
     try{ if (wl){ wl.release(); wl = null; } }catch(e){}
-    revokeOpened();
     sess = null; hist = []; incoming = {};
     store.del("ld_sess"); store.del("ld_hist"); fclear();
     $("inbox").innerHTML = ""; $("text").value = ""; $("sentMsg").textContent = "";
-    $("endModal").classList.add("hidden");
     show("pair"); $("pairErr").textContent = ""; $("pairNote").textContent = reason || "";
   }
 
@@ -560,8 +533,8 @@
   async function sendFile(file){
     var bar = $("sendBar"), fill = bar.firstElementChild;
     if (!file) return;
-    if (file.size > MAX){ flash("Too big (" + fmt(file.size) + "). Max is 50 MB.", true); return; }
-    if (fileTotal() + file.size > CAP){ flash("History is full (200 MB). Remove some files first.", true); return; }
+    if (file.size > MAX){ flash("Too big (" + fmt(file.size) + "). Max is 10 MB.", true); return; }
+    if (fileTotal() + file.size > CAP){ flash("History is full (50 MB). Remove some files first.", true); return; }
     var open = openConns();
     if (!open.length){ flash("Not connected yet.", true); return; }
     $("btnFile").disabled = true; $("btnSend").disabled = true;
@@ -617,7 +590,7 @@
       if (typeof d.size !== "number" || d.size > MAX) return;
       var name = String(d.name || "file");
       if (fileTotal() + d.size > CAP){
-        addHist({dir:"note", kind:"note", text:"Skipped “" + name + "” (history storage is full, 200 MB)."});
+        addHist({dir:"note", kind:"note", text:"Skipped “" + name + "” (history storage is full, 50 MB)."});
         return;
       }
       var card = el("div","msg");
@@ -681,13 +654,7 @@
     openConns().forEach(function(c){ c.send({x:"ext", rem:rem}); });
     flash("Added 10 minutes ✓");
   };
-  $("btnEnd").onclick = function(){ $("endModal").classList.remove("hidden"); };
-  $("endCancel").onclick = function(){ $("endModal").classList.add("hidden"); };
-  $("endModal").addEventListener("click", function(e){ if (e.target === this) this.classList.add("hidden"); });
-  $("endConfirm").onclick = function(){
-    $("endModal").classList.add("hidden");
-    endSession(true, "Session ended. History cleared.");
-  };
+  $("btnEnd").onclick = function(){ endSession(true, "Session ended. History cleared."); };
   $("btnSend").onclick = sendText;
   $("text").addEventListener("keydown", function(e){ if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) sendText(); });
   $("btnPaste").onclick = function(){
